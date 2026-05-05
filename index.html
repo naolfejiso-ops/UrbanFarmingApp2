@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Urban Farm Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --green-900: #173404; --green-800: #27500A; --green-700: #3B6D11;
+    --green-600: #4a8a18; --green-500: #639922; --green-300: #97C459;
+    --green-100: #C0DD97; --green-50: #EAF3DE;
+    --amber-500: #BA7517; --amber-100: #FAC775; --amber-50: #FAEEDA;
+    --red-500: #A32D2D; --red-100: #F7C1C1; --red-50: #FCEBEB;
+    --teal-500: #0F6E56; --teal-100: #9FE1CB; --teal-50: #E1F5EE;
+    --gray-900: #2C2C2A; --gray-700: #5F5E5A; --gray-500: #888780;
+    --gray-200: #B4B2A9; --gray-100: #D3D1C7; --gray-50: #F1EFE8;
+    --bg: #f9f7f4; --surface: #ffffff;
+    --text: #2C2C2A; --text-muted: #5F5E5A; --text-faint: #888780;
+    --border: rgba(44,44,42,0.12); --border-hover: rgba(44,44,42,0.25);
+    --radius: 12px; --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --api: http://localhost:3001/api;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* Layout */
+  .shell { display:flex; min-height:100vh; }
+  .sidebar {
+    width:220px; min-height:100vh; background:var(--green-900);
+    display:flex; flex-direction:column; flex-shrink:0; position:sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  .main { flex:1; min-width:0; }
+
+  /* Sidebar */
+  .logo { padding:1.5rem 1.25rem 1rem; border-bottom:1px solid rgba(255,255,255,0.08); }
+  .logo-title { font-family:'DM Serif Display',serif; font-size:1.3rem; color:#fff; line-height:1.2; }
+  .logo-sub { font-size:11px; color:rgba(255,255,255,0.45); letter-spacing:.05em; text-transform:uppercase; margin-top:2px; }
+  .nav { padding:.75rem 0; flex:1; }
+  .nav-section { font-size:10px; color:rgba(255,255,255,0.3); letter-spacing:.1em; text-transform:uppercase; padding:.75rem 1.25rem .25rem; }
+  .nav-item {
+    display:flex; align-items:center; gap:.6rem; padding:.6rem 1.25rem;
+    color:rgba(255,255,255,0.6); font-size:.85rem; cursor:pointer; transition:all .15s;
+    border-left:3px solid transparent; text-decoration:none;
+  }
+  .nav-item:hover { color:#fff; background:rgba(255,255,255,0.06); }
+  .nav-item.active { color:#fff; background:rgba(255,255,255,0.1); border-left-color:var(--green-300); }
+  .nav-icon { font-size:15px; width:18px; text-align:center; }
+
+  /* Topbar */
+  .topbar {
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:1rem 1.75rem; display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:10;
+  }
+  .page-title { font-size:1.2rem; font-weight:600; }
+  .page-sub { font-size:.8rem; color:var(--text-muted); margin-top:1px; }
+  .topbar-actions { display:flex; gap:.5rem; align-items:center; }
+
+  /* Content */
+  .content { padding:1.5rem 1.75rem; }
+
+  /* Cards */
+  .card {
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .card-header { padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .card-title { font-size:.95rem; font-weight:600; }
+  .card-body { padding:1.25rem; }
+
+  /* Stat Cards */
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:.75rem; margin-bottom:1.25rem; }
+  .stat-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:1rem 1.1rem; box-shadow:var(--shadow);
+  }
+  .stat-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:.4rem; }
+  .stat-value { font-size:1.6rem; font-weight:600; line-height:1; }
+  .stat-value.green { color:var(--green-700); }
+  .stat-value.amber { color:var(--amber-500); }
+  .stat-value.red { color:var(--red-500); }
+  .stat-value.teal { color:var(--teal-500); }
+  .stat-sub { font-size:11px; color:var(--text-faint); margin-top:.3rem; }
+
+  /* Tables */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th { text-align:left; padding:.6rem .75rem; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); border-bottom:1px solid var(--border); background:var(--gray-50); }
+  td { padding:.65rem .75rem; border-bottom:1px solid rgba(44,44,42,0.05); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(44,44,42,0.02); }
+
+  /* Badges */
+  .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:500; }
+  .badge-green { background:var(--green-50); color:var(--green-800); }
+  .badge-amber { background:var(--amber-50); color:var(--amber-500); }
+  .badge-red { background:var(--red-50); color:var(--red-500); }
+  .badge-teal { background:var(--teal-50); color:var(--teal-500); }
+  .badge-gray { background:var(--gray-50); color:var(--gray-700); }
+
+  /* Buttons */
+  .btn {
+    display:inline-flex; align-items:center; gap:.4rem; padding:.45rem .9rem;
+    border-radius:var(--radius-sm); font-family:inherit; font-size:.82rem; font-weight:500;
+    cursor:pointer; transition:all .15s; border:1px solid transparent;
+  }
+  .btn-primary { background:var(--green-700); color:#fff; }
+  .btn-primary:hover { background:var(--green-800); }
+  .btn-outline { background:transparent; border-color:var(--border-hover); color:var(--text); }
+  .btn-outline:hover { background:var(--gray-50); }
+  .btn-danger { background:transparent; border-color:var(--red-100); color:var(--red-500); font-size:.78rem; padding:.3rem .65rem; }
+  .btn-danger:hover { background:var(--red-50); }
+  .btn-sm { padding:.3rem .6rem; font-size:.78rem; }
+  .btn-edit { background:transparent; border-color:var(--green-100); color:var(--green-700); font-size:.78rem; padding:.3rem .65rem; }
+  .btn-edit:hover { background:var(--green-50); }
+
+  /* Forms / Modal */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.45);
+    display:flex; align-items:center; justify-content:center; z-index:100;
+    opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal {
+    background:var(--surface); border-radius:var(--radius); padding:1.5rem;
+    width:480px; max-width:95vw; max-height:90vh; overflow-y:auto;
+    transform:translateY(10px); transition:transform .2s;
+  }
+  .modal-overlay.open .modal { transform:translateY(0); }
+  .modal-title { font-size:1.05rem; font-weight:600; margin-bottom:1.25rem; }
+  .form-group { margin-bottom:.9rem; }
+  .form-label { display:block; font-size:.8rem; font-weight:500; margin-bottom:.35rem; color:var(--text-muted); }
+  .form-control {
+    width:100%; padding:.5rem .75rem; border:1px solid var(--border-hover);
+    border-radius:var(--radius-sm); font-family:inherit; font-size:.875rem;
+    background:var(--bg); color:var(--text); transition:border-color .15s;
+  }
+  .form-control:focus { outline:none; border-color:var(--green-500); }
+  select.form-control { cursor:pointer; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+  .modal-footer { display:flex; justify-content:flex-end; gap:.5rem; margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border); }
+
+  /* Dashboard charts */
+  .charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem; }
+  .bar-chart { height:160px; display:flex; align-items:flex-end; gap:6px; padding:.5rem 0 0; }
+  .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .bar { width:100%; border-radius:4px 4px 0 0; background:var(--green-300); min-height:4px; transition:height .4s; }
+  .bar-label { font-size:10px; color:var(--text-faint); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .bar-val { font-size:10px; color:var(--text-muted); font-weight:500; }
+
+  /* Alert severity */
+  .sev-critical { color:var(--red-500); font-weight:600; }
+  .sev-high { color:#c0392b; }
+  .sev-warning { color:var(--amber-500); }
+  .sev-medium { color:#e67e22; }
+  .sev-info { color:var(--teal-500); }
+
+  /* Toast */
+  .toast {
+    position:fixed; bottom:1.5rem; right:1.5rem; background:var(--green-800); color:#fff;
+    padding:.65rem 1.1rem; border-radius:var(--radius-sm); font-size:.85rem;
+    opacity:0; transition:opacity .3s; z-index:200; pointer-events:none;
+  }
+  .toast.show { opacity:1; }
+
+  /* Empty state */
+  .empty { text-align:center; padding:2.5rem 1rem; color:var(--text-faint); font-size:.875rem; }
+
+  /* Loading */
+  .loading { text-align:center; padding:2rem; color:var(--text-muted); font-size:.875rem; }
+
+  /* Connection banner */
+  .conn-banner {
+    background:var(--amber-50); border:1px solid var(--amber-100); border-radius:var(--radius-sm);
+    padding:.75rem 1rem; margin-bottom:1rem; font-size:.82rem; color:var(--amber-500); display:flex; align-items:center; gap:.5rem;
+  }
+
+  @media(max-width:768px){
+    .sidebar{width:60px;}
+    .logo-title,.logo-sub,.nav-section,.nav-item span{display:none;}
+    .nav-item{justify-content:center;padding:.75rem;}
+    .charts-grid{grid-template-columns:1fr;}
+    .form-row{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-title">Urban Farm</div>
+      <div class="logo-sub">Manager</div>
+    </div>
+    <div class="nav">
+      <div class="nav-section">Overview</div>
+      <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">◉</span><span>Dashboard</span>
+      </a>
+      <div class="nav-section">Farm</div>
+      <a class="nav-item" data-page="farmers" onclick="navigate('farmers')">
+        <span class="nav-icon">👤</span><span>Farmers</span>
+      </a>
+      <a class="nav-item" data-page="plots" onclick="navigate('plots')">
+        <span class="nav-icon">🌱</span><span>Plots</span>
+      </a>
+      <a class="nav-item" data-page="crops" onclick="navigate('crops')">
+        <span class="nav-icon">🌿</span><span>Crops</span>
+      </a>
+      <div class="nav-section">Operations</div>
+      <a class="nav-item" data-page="sensors" onclick="navigate('sensors')">
+        <span class="nav-icon">📡</span><span>Sensors</span>
+      </a>
+      <a class="nav-item" data-page="alerts" onclick="navigate('alerts')">
+        <span class="nav-icon">🔔</span><span>Alerts</span>
+      </a>
+      <a class="nav-item" data-page="harvests" onclick="navigate('harvests')">
+        <span class="nav-icon">🧺</span><span>Harvests</span>
+      </a>
+      <a class="nav-item" data-page="sales" onclick="navigate('sales')">
+        <span class="nav-icon">💰</span><span>Sales</span>
+      </a>
+      <div class="nav-section">Management</div>
+      <a class="nav-item" data-page="equipment" onclick="navigate('equipment')">
+        <span class="nav-icon">🔧</span><span>Equipment</span>
+      </a>
+      <a class="nav-item" data-page="tasks" onclick="navigate('tasks')">
+        <span class="nav-icon">📋</span><span>Tasks</span>
+      </a>
+      <a class="nav-item" data-page="logs" onclick="navigate('logs')">
+        <span class="nav-icon">🧪</span><span>Fert/Pest Logs</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="pageTitle">Dashboard</div>
+        <div class="page-sub" id="pageSub">Urban Farm Overview</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" id="addBtn" onclick="openAdd()" style="display:none">+ Add New</button>
+      </div>
+    </div>
+    <div class="content" id="content">
+      <div class="loading">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Add Record</div>
+    <div id="modalForm"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitForm()" id="submitBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api';
+let currentPage = 'dashboard';
+let editingId = null;
+let allFarmers = [], allCrops = [], allPlots = [], allEquipment = [], allHarvests = [];
+
+// ─── Navigation ────────────────────────────────────────
+const pages = {
+  dashboard: { title:'Dashboard', sub:'Urban Farm Overview', add:false },
+  farmers:   { title:'Farmers',   sub:'Manage your farmers',   add:true },
+  crops:     { title:'Crops',     sub:'Manage crop records',    add:true },
+  plots:     { title:'Farm Plots',sub:'Manage plot assignments',add:true },
+  sensors:   { title:'Sensors',   sub:'Monitor IoT devices',   add:true },
+  alerts:    { title:'Alerts',    sub:'System alerts',          add:false },
+  harvests:  { title:'Harvests',  sub:'Track harvest records',  add:true },
+  sales:     { title:'Market Sales',sub:'Sales & payments',     add:true },
+  equipment: { title:'Equipment', sub:'Farm equipment',         add:true },
+  tasks:     { title:'Tasks',     sub:'Equipment tasks',        add:true },
+  logs:      { title:'Fert/Pest Logs',sub:'Treatment records',  add:true },
+};
+
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+  const p = pages[page];
+  document.getElementById('pageTitle').textContent = p.title;
+  document.getElementById('pageSub').textContent = p.sub;
+  document.getElementById('addBtn').style.display = p.add ? '' : 'none';
+  loadPage(page);
+}
+
+async function loadPage(page) {
+  const el = document.getElementById('content');
+  el.innerHTML = '<div class="loading">Loading...</div>';
+  try {
+    switch(page) {
+      case 'dashboard': await renderDashboard(); break;
+      case 'farmers':   await renderTable('farmers', farmerColumns); break;
+      case 'crops':     await renderTable('crops', cropColumns); break;
+      case 'plots':     await renderTable('plots', plotColumns); break;
+      case 'sensors':   await renderTable('sensors', sensorColumns); break;
+      case 'alerts':    await renderAlerts(); break;
+      case 'harvests':  await renderTable('harvests', harvestColumns); break;
+      case 'sales':     await renderTable('sales', salesColumns); break;
+      case 'equipment': await renderTable('equipment', equipmentColumns); break;
+      case 'tasks':     await renderTable('tasks', taskColumns); break;
+      case 'logs':      await renderTable('logs', logColumns); break;
+    }
+  } catch(e) {
+    el.innerHTML = `<div class="conn-banner">⚠️ Cannot connect to API at <strong>${API}</strong>. Make sure the backend server is running (<code>node server.js</code>) and MySQL is configured.</div>`;
+    console.error(e);
+  }
+}
+
+// ─── Dashboard ─────────────────────────────────────────
+async function renderDashboard() {
+  const d = await apiFetch('/dashboard');
+  const s = d.stats;
+  document.getElementById('content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Farmers</div><div class="stat-value teal">${s.farmers}</div></div>
+      <div class="stat-card"><div class="stat-label">Active Plots</div><div class="stat-value green">${s.activePlots} <span style="font-size:.9rem;color:var(--text-faint)">/ ${s.plots}</span></div></div>
+      <div class="stat-card"><div class="stat-label">Crop Types</div><div class="stat-value green">${s.crops}</div></div>
+      <div class="stat-card"><div class="stat-label">Sensors</div><div class="stat-value">${s.sensors}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Harvest</div><div class="stat-value">${s.totalKg.toFixed(1)} <span style="font-size:.9rem;color:var(--text-faint)">kg</span></div></div>
+      <div class="stat-card"><div class="stat-label">Revenue (Paid)</div><div class="stat-value green">$${s.revenue.toFixed(2)}</div></div>
+      <div class="stat-card"><div class="stat-label">Pending Alerts</div><div class="stat-value ${s.pendingAlerts>0?'red':''}">${s.pendingAlerts}</div></div>
+      <div class="stat-card"><div class="stat-label">Harvests</div><div class="stat-value">${s.harvests}</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Harvest by Crop (kg)</span></div>
+        <div class="card-body">${barChart(d.cropHarvest,'Crop_Name','total_kg','green')}</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Revenue by Buyer ($)</span></div>
+        <div class="card-body">${barChart(d.salesByBuyer,'Buyer_Name','total','teal')}</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <div class="card-header"><span class="card-title">Recent Harvests</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Crop</th><th>Date</th><th>Qty (kg)</th><th>Quality</th></tr></thead>
+        <tbody>${d.recentHarvests.map(r=>`
+          <tr><td>${r.Crop_Name||'—'}</td><td>${fmt(r.Harvest_Date)}</td><td>${r.Quantity_kg}</td>
+          <td><span class="badge ${qualBadge(r.Quality)}">${r.Quality}</span></td></tr>
+        `).join('')}</tbody>
+      </table></div>
+    </div>
+  `;
+}
+
+function barChart(data, labelKey, valKey, color) {
+  if(!data.length) return '<div class="empty">No data</div>';
+  const max = Math.max(...data.map(d=>+d[valKey]));
+  return `<div class="bar-chart">${data.map(d=>`
+    <div class="bar-col">
+      <div class="bar-val">${(+d[valKey]).toFixed(1)}</div>
+      <div class="bar" style="height:${Math.round((+d[valKey]/max)*120)}px;background:var(--${color}-300)"></div>
+      <div class="bar-label">${d[labelKey]}</div>
+    </div>`).join('')}</div>`;
+}
+
+// ─── Generic Table Renderer ─────────────────────────────
+async function renderTable(endpoint, columns) {
+  const data = await apiFetch(`/${endpoint}`);
+  const rows = data.map(row => {
+    const cells = columns.map(c => `<td>${c.render ? c.render(row) : (row[c.key]??'—')}</td>`).join('');
+    const actions = `
+      <td style="white-space:nowrap">
+        <button class="btn btn-edit" onclick="openEdit('${endpoint}',${JSON.stringify(row).replace(/"/g,'&quot;')})">Edit</button>
+        <button class="btn btn-danger" onclick="deleteRow('${endpoint}',${row[primaryKey(endpoint)]})">Del</button>
+      </td>`;
+    return `<tr>${cells}${actions}</tr>`;
+  }).join('') || `<tr><td colspan="${columns.length+1}" class="empty">No records found</td></tr>`;
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="table-wrap"><table>
+        <thead><tr>${columns.map(c=>`<th>${c.label}</th>`).join('')}<th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+}
+
+async function renderAlerts() {
+  const data = await apiFetch('/alerts');
+  const rows = data.map(r => `
+    <tr>
+      <td>${r.Alert_ID}</td>
+      <td>${r.Alert_Type}</td>
+      <td><span class="sev-${r.Severity.toLowerCase()}">${r.Severity}</span></td>
+      <td><span class="badge ${statusBadge(r.Severity_Status)}">${r.Severity_Status}</span></td>
+      <td>${r.Value??'—'} ${r.Unit??''}</td>
+      <td>${fmtDT(r.Timestamp)}</td>
+      <td>${r.Severity_Status==='Pending'
+        ? `<button class="btn btn-sm btn-outline" onclick="resolveAlert(${r.Alert_ID})">Resolve</button>`
+        : ''}</td>
+    </tr>`).join('') || `<tr><td colspan="7" class="empty">No alerts</td></tr>`;
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Type</th><th>Severity</th><th>Status</th><th>Reading</th><th>Timestamp</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+}
+
+async function resolveAlert(id) {
+  await apiFetch(`/alerts/${id}`, 'PUT', { Severity_Status:'Resolved' });
+  toast('Alert resolved');
+  renderAlerts();
+}
+
+// ─── Column Definitions ─────────────────────────────────
+const farmerColumns = [
+  {key:'Farmer_ID',label:'ID'},
+  {key:'Name',label:'Name'},
+  {key:'Email',label:'Email'},
+  {key:'Phone_No',label:'Phone'},
+  {key:'Age',label:'Age'},
+];
+const cropColumns = [
+  {key:'Crop_ID',label:'ID'},
+  {key:'Crop_Name',label:'Crop'},
+  {key:'Category',label:'Category'},
+  {key:'Water_Needs',label:'Water'},
+  {key:'Grow_Season',label:'Season'},
+];
+const plotColumns = [
+  {key:'Plot_ID',label:'ID'},
+  {key:'Farmer_Name',label:'Farmer'},
+  {key:'Location',label:'Location'},
+  {key:'Area_m2',label:'Area (m²)'},
+  {key:'Status',label:'Status',render:r=>`<span class="badge ${r.Status==='Active'?'badge-green':r.Status==='Inactive'?'badge-red':'badge-amber'}">${r.Status}</span>`},
+];
+const sensorColumns = [
+  {key:'Sensor_ID',label:'ID'},
+  {key:'Plot_Location',label:'Plot'},
+  {key:'Sensor_Type',label:'Type'},
+  {key:'Location',label:'Location'},
+  {key:'Install_Date',label:'Installed',render:r=>fmt(r.Install_Date)},
+];
+const harvestColumns = [
+  {key:'Harvest_ID',label:'ID'},
+  {key:'Crop_Name',label:'Crop'},
+  {key:'Harvest_Date',label:'Date',render:r=>fmt(r.Harvest_Date)},
+  {key:'Quantity_kg',label:'Qty (kg)'},
+  {key:'Quality',label:'Quality',render:r=>`<span class="badge ${qualBadge(r.Quality)}">${r.Quality}</span>`},
+];
+const salesColumns = [
+  {key:'Sales_ID',label:'ID'},
+  {key:'Crop_Name',label:'Crop'},
+  {key:'Buyer_Name',label:'Buyer'},
+  {key:'Quantity_sold',label:'Qty'},
+  {key:'Unit_Price',label:'Unit $'},
+  {key:'Sale_Date',label:'Date',render:r=>fmt(r.Sale_Date)},
+  {key:'Payment_Status',label:'Payment',render:r=>`<span class="badge ${payBadge(r.Payment_Status)}">${r.Payment_Status}</span>`},
+];
+const equipmentColumns = [
+  {key:'Equipment_ID',label:'ID'},
+  {key:'Farmer_Name',label:'Farmer'},
+  {key:'Equipment_Name',label:'Name'},
+  {key:'Equipment_Type',label:'Type'},
+  {key:'Status',label:'Status'},
+];
+const taskColumns = [
+  {key:'Task_ID',label:'ID'},
+  {key:'Equipment_Name',label:'Equipment'},
+  {key:'Task_Name',label:'Task'},
+  {key:'Priority',label:'Priority',render:r=>`<span class="badge ${prioBadge(r.Priority)}">${r.Priority}</span>`},
+  {key:'DueDate',label:'Due',render:r=>fmt(r.DueDate)},
+];
+const logColumns = [
+  {key:'Log_ID',label:'ID'},
+  {key:'Crop_Name',label:'Crop'},
+  {key:'Log_Type',label:'Type'},
+  {key:'Date_Applied',label:'Applied',render:r=>fmt(r.Date_Applied)},
+  {key:'Dosage_ml',label:'Dosage (ml)'},
+  {key:'Method',label:'Method'},
+];
+
+// ─── CRUD Modals ────────────────────────────────────────
+function primaryKey(ep) {
+  return {farmers:'Farmer_ID',crops:'Crop_ID',plots:'Plot_ID',sensors:'Sensor_ID',
+    harvests:'Harvest_ID',sales:'Sales_ID',equipment:'Equipment_ID',tasks:'Task_ID',logs:'Log_ID'}[ep];
+}
+
+function openAdd() { editingId=null; openModal(currentPage, null); }
+function openEdit(ep, row) { editingId=row[primaryKey(ep)]; openModal(ep, row); }
+
+async function openModal(ep, row) {
+  await loadRefs();
+  document.getElementById('modalTitle').textContent = (row?'Edit ':'Add ')+pages[ep]?.title;
+  document.getElementById('modalForm').innerHTML = formHtml(ep, row);
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+async function loadRefs() {
+  try {
+    [allFarmers,allCrops,allPlots,allEquipment,allHarvests] = await Promise.all([
+      apiFetch('/farmers'), apiFetch('/crops'), apiFetch('/plots'),
+      apiFetch('/equipment'), apiFetch('/harvests')
+    ]);
+  } catch(e) { /* offline — selects will be empty */ }
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function closeModalOnBg(e) { if(e.target===e.currentTarget) closeModal(); }
+
+async function submitForm() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled=true; btn.textContent='Saving...';
+  try {
+    const data = collectForm();
+    const ep = currentPage;
+    if(editingId) await apiFetch(`/${ep}/${editingId}`,'PUT',data);
+    else await apiFetch(`/${ep}`,'POST',data);
+    closeModal();
+    toast(editingId?'Record updated':'Record created');
+    loadPage(ep);
+  } catch(e) { toast('Error: '+e.message,'error'); }
+  btn.disabled=false; btn.textContent='Save';
+}
+
+function collectForm() {
+  const inputs = document.querySelectorAll('#modalForm [name]');
+  const obj={};
+  inputs.forEach(i=>{ if(i.value!=='') obj[i.name]=i.value; });
+  return obj;
+}
+
+async function deleteRow(ep, id) {
+  if(!confirm('Delete this record?')) return;
+  await apiFetch(`/${ep}/${id}`,'DELETE');
+  toast('Deleted');
+  loadPage(ep);
+}
+
+// ─── Form HTML per entity ────────────────────────────────
+function formHtml(ep, row) {
+  const v = (k,def='') => row ? (row[k]??def):def;
+  const sel = (name,opts,val) => `<select name="${name}" class="form-control">${opts.map(o=>`<option value="${o.v}" ${o.v==val?'selected':''}>${o.l}</option>`).join('')}</select>`;
+
+  switch(ep) {
+    case 'farmers': return `
+      <div class="form-group"><label class="form-label">Name</label><input name="Name" class="form-control" value="${row?.Name||''}"/></div>
+      <div class="form-group"><label class="form-label">Email</label><input name="Email" class="form-control" type="email" value="${row?.Email||''}"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Phone</label><input name="Phone_No" class="form-control" value="${row?.Phone_No||''}"/></div>
+        <div class="form-group"><label class="form-label">Age</label><input name="Age" class="form-control" type="number" value="${row?.Age||''}"/></div>
+      </div>`;
+    case 'crops': return `
+      <div class="form-group"><label class="form-label">Crop Name</label><input name="Crop_Name" class="form-control" value="${row?.Crop_Name||''}"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Category</label>
+          ${sel('Category',[{v:'Leafy Green',l:'Leafy Green'},{v:'Root',l:'Root'},{v:'Fruit',l:'Fruit'},{v:'Herb',l:'Herb'},{v:'Legume',l:'Legume'}],row?.Category)}
+        </div>
+        <div class="form-group"><label class="form-label">Water Needs</label>
+          ${sel('Water_Needs',[{v:'Low',l:'Low'},{v:'Moderate',l:'Moderate'},{v:'High',l:'High'}],row?.Water_Needs)}
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Grow Season</label>
+        ${sel('Grow_Season',[{v:'Spring',l:'Spring'},{v:'Summer',l:'Summer'},{v:'Autumn',l:'Autumn'},{v:'Winter',l:'Winter'},{v:'Year-round',l:'Year-round'}],row?.Grow_Season)}
+      </div>`;
+    case 'plots': return `
+      <div class="form-group"><label class="form-label">Farmer</label>
+        ${sel('Farmer_ID',allFarmers.map(f=>({v:f.Farmer_ID,l:f.Name})),row?.Farmer_ID)}
+      </div>
+      <div class="form-group"><label class="form-label">Location</label><input name="Location" class="form-control" value="${row?.Location||''}"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Area (m²)</label><input name="Area_m2" class="form-control" type="number" step="0.01" value="${row?.Area_m2||''}"/></div>
+        <div class="form-group"><label class="form-label">Status</label>
+          ${sel('Status',[{v:'Active',l:'Active'},{v:'Inactive',l:'Inactive'},{v:'Fallow',l:'Fallow'}],row?.Status||'Active')}
+        </div>
+      </div>`;
+    case 'sensors': return `
+      <div class="form-group"><label class="form-label">Plot</label>
+        ${sel('Plot_ID',allPlots.map(p=>({v:p.Plot_ID,l:p.Location||'Plot '+p.Plot_ID})),row?.Plot_ID)}
+      </div>
+      <div class="form-group"><label class="form-label">Sensor Type</label>
+        ${sel('Sensor_Type',[{v:'Soil Moisture',l:'Soil Moisture'},{v:'Temperature',l:'Temperature'},{v:'Humidity',l:'Humidity'},{v:'pH',l:'pH'},{v:'Light',l:'Light'}],row?.Sensor_Type)}
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Install Date</label><input name="Install_Date" class="form-control" type="date" value="${row?.Install_Date?.slice?.(0,10)||''}"/></div>
+        <div class="form-group"><label class="form-label">Location</label><input name="Location" class="form-control" value="${row?.Location||''}"/></div>
+      </div>`;
+    case 'harvests': return `
+      <div class="form-group"><label class="form-label">Crop</label>
+        ${sel('Crop_ID',allCrops.map(c=>({v:c.Crop_ID,l:c.Crop_Name})),row?.Crop_ID)}
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Harvest Date</label><input name="Harvest_Date" class="form-control" type="date" value="${row?.Harvest_Date?.slice?.(0,10)||''}"/></div>
+        <div class="form-group"><label class="form-label">Quantity (kg)</label><input name="Quantity_kg" class="form-control" type="number" step="0.01" value="${row?.Quantity_kg||''}"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Quality</label>
+        ${sel('Quality',[{v:'Premium',l:'Premium'},{v:'Good',l:'Good'},{v:'Standard',l:'Standard'},{v:'Bruised',l:'Bruised'}],row?.Quality)}
+      </div>`;
+    case 'sales': return `
+      <div class="form-group"><label class="form-label">Harvest</label>
+        ${sel('Harvest_ID',allHarvests.map(h=>({v:h.Harvest_ID,l:`#${h.Harvest_ID} — ${h.Crop_Name||'?'} (${h.Quantity_kg}kg)`})),row?.Harvest_ID)}
+      </div>
+      <div class="form-group"><label class="form-label">Buyer Name</label><input name="Buyer_Name" class="form-control" value="${row?.Buyer_Name||''}"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Sale Date</label><input name="Sale_Date" class="form-control" type="date" value="${row?.Sale_Date?.slice?.(0,10)||''}"/></div>
+        <div class="form-group"><label class="form-label">Qty Sold</label><input name="Quantity_sold" class="form-control" type="number" step="0.01" value="${row?.Quantity_sold||''}"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Unit Price ($)</label><input name="Unit_Price" class="form-control" type="number" step="0.01" value="${row?.Unit_Price||''}"/></div>
+        <div class="form-group"><label class="form-label">Payment Status</label>
+          ${sel('Payment_Status',[{v:'Paid',l:'Paid'},{v:'Pending',l:'Pending'},{v:'N/A',l:'N/A'}],row?.Payment_Status)}
+        </div>
+      </div>`;
+    case 'equipment': return `
+      <div class="form-group"><label class="form-label">Farmer</label>
+        ${sel('Farmer_ID',allFarmers.map(f=>({v:f.Farmer_ID,l:f.Name})),row?.Farmer_ID)}
+      </div>
+      <div class="form-group"><label class="form-label">Equipment Name</label><input name="Equipment_Name" class="form-control" value="${row?.Equipment_Name||''}"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Type</label><input name="Equipment_Type" class="form-control" value="${row?.Equipment_Type||''}"/></div>
+        <div class="form-group"><label class="form-label">Status</label><input name="Status" class="form-control" value="${row?.Status||''}"/></div>
+      </div>`;
+    case 'tasks': return `
+      <div class="form-group"><label class="form-label">Equipment</label>
+        ${sel('Equipment_ID',allEquipment.map(e=>({v:e.Equipment_ID,l:e.Equipment_Name})),row?.Equipment_ID)}
+      </div>
+      <div class="form-group"><label class="form-label">Task Name</label><input name="Task_Name" class="form-control" value="${row?.Task_Name||''}"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Priority</label>
+          ${sel('Priority',[{v:'High',l:'High'},{v:'Medium',l:'Medium'},{v:'Low',l:'Low'}],row?.Priority)}
+        </div>
+        <div class="form-group"><label class="form-label">Due Date</label><input name="DueDate" class="form-control" type="date" value="${row?.DueDate?.slice?.(0,10)||''}"/></div>
+      </div>`;
+    case 'logs': return `
+      <div class="form-group"><label class="form-label">Crop</label>
+        ${sel('Crop_ID',allCrops.map(c=>({v:c.Crop_ID,l:c.Crop_Name})),row?.Crop_ID)}
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Log Type</label>
+          ${sel('Log_Type',[{v:'Fertilizer',l:'Fertilizer'},{v:'Pesticide',l:'Pesticide'},{v:'Organic Fertilizer',l:'Organic Fertilizer'},{v:'Nutrient Mix',l:'Nutrient Mix'},{v:'Neem Oil',l:'Neem Oil'}],row?.Log_Type)}
+        </div>
+        <div class="form-group"><label class="form-label">Date Applied</label><input name="Date_Applied" class="form-control" type="date" value="${row?.Date_Applied?.slice?.(0,10)||''}"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Dosage (ml)</label><input name="Dosage_ml" class="form-control" type="number" step="0.01" value="${row?.Dosage_ml||''}"/></div>
+        <div class="form-group"><label class="form-label">Method</label><input name="Method" class="form-control" value="${row?.Method||''}"/></div>
+      </div>`;
+    default: return '<p>No form defined for this entity.</p>';
+  }
+}
+
+// ─── Helpers ────────────────────────────────────────────
+async function apiFetch(path, method='GET', body=null) {
+  const opts = { method, headers:{'Content-Type':'application/json'} };
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(API+path, opts);
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function fmt(d) { if(!d) return '—'; return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtDT(d) { if(!d) return '—'; return new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
+
+function qualBadge(q) { return {Premium:'badge-green',Good:'badge-teal',Standard:'badge-gray',Bruised:'badge-amber'}[q]||'badge-gray'; }
+function payBadge(s) { return {Paid:'badge-green',Pending:'badge-amber','N/A':'badge-gray'}[s]||'badge-gray'; }
+function prioBadge(p) { return {High:'badge-red',Medium:'badge-amber',Low:'badge-green'}[p]||'badge-gray'; }
+function statusBadge(s) { return {Pending:'badge-amber',Resolved:'badge-green',Logged:'badge-teal',Ignored:'badge-gray'}[s]||'badge-gray'; }
+
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = type==='error'?'var(--red-500)':'var(--green-800)';
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2800);
+}
+
+// Init
+navigate('dashboard');
+</script>
+</body>
+</html>
