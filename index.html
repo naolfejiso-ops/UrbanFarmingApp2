@@ -268,7 +268,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API = '/api';
+const API = window.location.origin + '/api';
 let currentPage = 'dashboard';
 let editingId = null;
 let allFarmers = [], allCrops = [], allPlots = [], allEquipment = [], allHarvests = [];
