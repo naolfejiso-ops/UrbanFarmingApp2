@@ -316,9 +316,9 @@ async function loadPage(page) {
       case 'logs':      await renderTable('logs', logColumns); break;
     }
   } catch(e) {
-    console.error(e);
-    setTimeout(() => loadPage(page), 3000);
+  el.innerHTML = '<div class="empty">⚠️ Could not load data. <button class="btn btn-outline" onclick="loadPage(currentPage)">Retry</button></div>';
 }
+
 }
 
 // ─── Dashboard ─────────────────────────────────────────
