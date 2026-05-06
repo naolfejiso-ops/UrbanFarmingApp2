@@ -316,7 +316,9 @@ async function loadPage(page) {
       case 'logs':      await renderTable('logs', logColumns); break;
     }
   } catch(e) {
-    el.innerHTML = `<div class="conn-banner">⚠️ Cannot connect to API at <strong>${API}</strong>. Make sure the backend server is running (<code>node server.js</code>) and MySQL is configured.</div>`;
+    console.error(e);
+    setTimeout(() => loadPage(page), 3000);
+}
     console.error(e);
   }
 }
